@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.npm-cache/
+.electron-cache/
+*.tsbuildinfo
+.impeccable-runtime/
+.qa/
+.impeccable/review/
+.impeccable/questions/
+.env
+.env.*
+!.env.example
+*.log
+*.pdf

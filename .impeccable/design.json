@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-06T05:16:45.889Z",
+  "title": "Design System: Speculib",
+  "extensions": {
+    "colorMeta": {
+      "accent": {
+        "role": "primary",
+        "displayName": "Action Cyan"
+      },
+      "deep-space": {
+        "role": "neutral",
+        "displayName": "Deep Space"
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Floating Panel"
+      },
+      "science": {
+        "role": "secondary",
+        "displayName": "Science"
+      },
+      "machine-learning": {
+        "role": "secondary",
+        "displayName": "Machine Learning"
+      },
+      "philosophy": {
+        "role": "secondary",
+        "displayName": "Philosophy"
+      },
+      "mathematics": {
+        "role": "secondary",
+        "displayName": "Mathematics"
+      },
+      "fiction": {
+        "role": "secondary",
+        "displayName": "Fiction"
+      },
+      "history": {
+        "role": "secondary",
+        "displayName": "History"
+      },
+      "computer-science": {
+        "role": "secondary",
+        "displayName": "Computer Science"
+      },
+      "cooking": {
+        "role": "secondary",
+        "displayName": "Cooking"
+      }
+    },
+    "typographyMeta": {
+      "brand": {
+        "displayName": "Brand",
+        "purpose": "Application identity, not a hero headline."
+      },
+      "title": {
+        "displayName": "Panel Title",
+        "purpose": "Compact panel headings."
+      },
+      "body": {
+        "displayName": "Interface Body",
+        "purpose": "Root UI text; Manrope is self-hosted."
+      },
+      "resource-title": {
+        "displayName": "Resource Title",
+        "purpose": "Book titles in resource views."
+      },
+      "label": {
+        "displayName": "Metadata",
+        "purpose": "Secondary labels and counts."
+      },
+      "action": {
+        "displayName": "Primary Action",
+        "purpose": "Import action text."
+      }
+    },
+    "shadows": [
+      {
+        "name": "cover",
+        "value": "3px 8px 16px #0005",
+        "purpose": "Book cover depth only."
+      },
+      {
+        "name": "map-label",
+        "value": "0 1px 5px #000",
+        "purpose": "Map legend readability (text-shadow)."
+      }
+    ],
+    "motion": [
+      {
+        "name": "button-state",
+        "value": "background-color 0.16s, color 0.16s, border-color 0.16s",
+        "purpose": "Brief control feedback."
+      },
+      {
+        "name": "cover-lift",
+        "value": "transform 0.18s ease-out",
+        "purpose": "Cover rises 3px on hover."
+      },
+      {
+        "name": "cover-overlay",
+        "value": "opacity 0.16s",
+        "purpose": "Reveal cover open action on hover or focus."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion: reduce)",
+        "purpose": "Remove CSS animation and transition; Three.js also suppresses autonomous star rotation."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "wide",
+        "value": "1700px"
+      },
+      {
+        "name": "compact",
+        "value": "1200px"
+      },
+      {
+        "name": "narrow-desktop",
+        "value": "950px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Import Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary local PDF import action.",
+      "html": "<button class=\"ds-import\">Import PDFs</button>",
+      "css": ".ds-import{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:9px 13px;border:0;border-radius:7px;background:#8bd9eb;color:#09222d;font:650 12px \"Manrope Variable\",sans-serif;cursor:pointer;transition:background-color .16s,color .16s,border-color .16s}.ds-import:hover{background:#b1ebf5;color:#09222d}.ds-import:focus-visible{outline:2px solid var(--accent,#83d9ee);outline-offset:3px}.ds-import:disabled{opacity:.4;cursor:default}"
+    },
+    {
+      "name": "Selected Navigation",
+      "kind": "nav",
+      "refersTo": "nav-selected",
+      "description": "Selected sidebar row with real subject marker and count.",
+      "html": "<button class=\"ds-nav\" aria-current=\"page\"><span class=\"ds-dot\"></span>Science<small>12</small></button>",
+      "css": ".ds-nav{display:flex;align-items:center;gap:10px;width:100%;min-height:38px;padding:11px 10px;border:0;border-radius:7px;background:#173345;color:#a5e3f1;text-align:left;font:12px \"Manrope Variable\",sans-serif;cursor:pointer;transition:color .16s}.ds-nav:hover{color:#fff}.ds-nav:focus-visible{outline:2px solid var(--accent,#83d9ee);outline-offset:3px}.ds-dot{height:6px;width:6px;flex-shrink:0;border-radius:50%;background:#58c9f5}.ds-nav small{margin-left:auto;font-size:11px;font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Floating Panel",
+      "kind": "card",
+      "refersTo": "floating-panel",
+      "description": "Readable translucent work surface, without a panel shadow.",
+      "html": "<section class=\"ds-panel\"><h2>Library</h2><p>Browse your local resources.</p></section>",
+      "css": ".ds-panel{padding:20px;border:1px solid var(--line,#aacfe51c);border-radius:var(--radius,12px);background:var(--panel,rgba(10,22,34,.94));color:#e9f2f7;font:13px \"Manrope Variable\",sans-serif}.ds-panel h2{margin:0;font-size:15px;font-weight:600;letter-spacing:-.02em}.ds-panel p{margin:12px 0 0;color:var(--muted,#9fb4c5);font-size:12px}"
+    },
+    {
+      "name": "Resource Filter Tab",
+      "kind": "button",
+      "refersTo": "tab-selected",
+      "description": "Selected resource filter inside the dark tab track.",
+      "html": "<div class=\"ds-tabs\"><button class=\"ds-tab\" aria-pressed=\"true\">All</button></div>",
+      "css": ".ds-tabs{display:inline-flex;padding:3px;border-radius:6px;background:#08111d}.ds-tab{border:0;padding:6px 12px;border-radius:4px;background:#203446;color:#eff8ff;font:11px \"Manrope Variable\",sans-serif;cursor:pointer;transition:color .16s}.ds-tab:hover{color:#fff}.ds-tab:focus-visible{outline:2px solid var(--accent,#83d9ee);outline-offset:3px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Spatial Library",
+    "overview": "A dark, space-inspired desktop library. Colored subject clusters supply the atmosphere and orientation; restrained HUD surfaces keep browsing, reading, and source retrieval familiar. The library remains visible as light points behind the working interface.\n\nKeep the interface compact and quiet for sustained use. The spatial treatment supports real library content: placement is illustrative and subject-based, not a semantic embedding visualization. Preview resources remain explicitly identified; the interface must not imply OCR, embeddings, or generated explanations are available.",
+    "keyCharacteristics": [
+      "Deep-space background with readable translucent work surfaces.",
+      "A visible subject map and independently collapsible side panels.",
+      "Concise controls, restrained cyan actions, and consistent subject identity."
+    ],
+    "rules": [
+      {
+        "name": "The Subject Identity Rule",
+        "body": "Reuse each subject’s actual color across surfaces; do not recolor clusters for visual balance.",
+        "section": "colors"
+      },
+      {
+        "name": "The Quiet Hierarchy Rule",
+        "body": "Establish priority through weight, spacing, and contrast before increasing type size.",
+        "section": "typography"
+      }
+    ],
+    "dos": [
+      "Do keep the library map visible around readable work surfaces.",
+      "Do preserve independent panel collapse and clear keyboard focus.",
+      "Do bind subject markers, legends, and spatial nodes to the same subject colors.",
+      "Do distinguish real source content from labeled previews and illustrative placement."
+    ],
+    "donts": [
+      "Don’t add slogans, decorative introductions, fake telemetry, coordinates, or workspace breadcrumbs.",
+      "Don’t replace the spatial library with a generic card dashboard.",
+      "Don’t imply semantic embeddings, OCR, LLM explanations, or evidence beyond the local library exist.",
+      "Don’t claim a phone layout below the implemented desktop minimum."
+    ]
+  }
+}

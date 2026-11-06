@@ -29,3 +29,5 @@ If automatic categorization finds no subjects, the app asks the user to select e
 ## Local librarian and categorizer
 
 The user selected Ollama as the runtime and wants the user to choose the librarian model. Model settings now expose independent librarian and categorization selections from installed local chat models; neither is downloaded or enabled automatically. The librarian has bounded tools for searching, inspecting metadata, reading physical pages, comparing sources, showing covers, and opening requested PDFs. It may refine searches and inspect evidence before answering. Categorization runs separately in the background, preserves manual choices, and asks the user when evidence is insufficient. See README.md for implementation limits, test commands, and local-runtime details.
+
+PDF reading now uses continuous vertical scrolling with a visible scrollbar and explicit Scroll down control. The counter follows the visible page; direct jumps and source-page navigation remain supported. Only nearby PDF pages render to canvases.

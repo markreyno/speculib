@@ -57,3 +57,9 @@ The librarian can call `search_library`, `get_resource`, `read_pages`, `compare_
 Categorization is a separate background job: it samples up to 12 physical pages, requests subjects, domain, summary, keywords, document type and fiction classification, and validates evidence quotes against those samples. Insufficient evidence requests user input. Manual corrections win. Librarian calls preempt categorization, which resumes after the conversation operation completes. This is sample-based classification, not a claim to have read every page.
 
 `node --experimental-strip-types scripts/ollama-smoke.mjs [model]` checks the installed local model against synthetic cooking/software books. `node scripts/ollama-ui-smoke.mjs` uses an isolated Electron profile to verify the model picker, saved role choices, and a real local inference; it does not alter the normal library or its model settings. Live checks were run with the already installed `qwen3:0.6b`; this small model required the structured tool adapter and explicit intent constraints in the recipe-disambiguation check. Larger-model accuracy is not established by that test.
+
+## Continuous PDF reading
+
+The PDF reader scrolls continuously through the document. Use the mouse wheel, visible scrollbar, keyboard, or the toolbar's Scroll down button. The page number tracks the most visible page; previous/next and direct page-number jumps remain available. Source results still open at their physical PDF page.
+
+PDF.js opens a document once per reader session. Only pages near the viewport receive canvases; offscreen canvases are released and render resolution is capped. `node scripts/pdf-scroll-smoke.mjs` checks an isolated 80-page fixture, scrolling, distant page jumps, a landscape page, and bounded canvas count. The normal UI smoke test also checks the two-page scroll-down flow.

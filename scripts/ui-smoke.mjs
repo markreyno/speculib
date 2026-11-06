@@ -180,6 +180,25 @@ try {
     "1",
     "Whole-resource cover opens page one",
   );
+  const scroller = page.getByRole("region", {
+    name: "PDF document",
+    exact: true,
+  });
+  await page.waitForSelector(".pdf-page-frame canvas");
+  assert.equal(
+    await page.locator(".pdf-page-frame").count(),
+    2,
+    "Reader lays out a continuous document",
+  );
+  await page.getByRole("button", { name: "Scroll down", exact: true }).click();
+  await page.waitForFunction(
+    () => document.querySelector(".paper-area").scrollTop > 50,
+  );
+  await page.waitForFunction(
+    () =>
+      document.querySelector('input[aria-label="Page number"]').value === "2",
+  );
+  await page.screenshot({ path: ".impeccable/review/pdf-scroll.png" });
   await page.reload();
   await page.waitForSelector(".book-title");
   assert.equal(

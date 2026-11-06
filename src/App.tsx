@@ -1,3 +1,4 @@
+import Reader from "./Reader";
 import ModelSettingsDialog from "./ModelSettingsDialog";
 import { runLibrarianAgent } from "./librarian-agent";
 import type { ModelSettings } from "./local-models";
@@ -80,100 +81,6 @@ function Cover({ book }: { book: Resource }) {
           <div className="cover-author">{book.author}</div>
         </>
       )}
-    </div>
-  );
-}
-function Reader({
-  book,
-  page,
-  onClose,
-}: {
-  book: Resource;
-  page: number;
-  onClose: () => void;
-}) {
-  const [current, setCurrent] = useState(page);
-  const [error, setError] = useState("");
-  const canvas = useRef<HTMLCanvasElement>(null);
-  useEffect(() => {
-    if (!book.data) return;
-    let cancelled = false;
-    let doc: pdfjs.PDFDocumentProxy | undefined;
-    let task: pdfjs.RenderTask | undefined;
-    const loading = pdfjs.getDocument({ data: book.data.slice(0) });
-    (async () => {
-      doc = await loading.promise;
-      const p = await doc.getPage(current);
-      if (cancelled) return;
-      const view = p.getViewport({ scale: 1.5 });
-      canvas.current!.width = view.width;
-      canvas.current!.height = view.height;
-      task = p.render({
-        canvasContext: canvas.current!.getContext("2d")!,
-        viewport: view,
-      });
-      await task.promise;
-    })().catch((e) => {
-      if (!cancelled) setError(String(e));
-    });
-    return () => {
-      cancelled = true;
-      task?.cancel();
-      void loading.destroy();
-    };
-  }, [book, current]);
-  return (
-    <div className="reader">
-      <div className="reader-toolbar">
-        <button onClick={onClose}>
-          <ArrowLeft size={16} /> Library
-        </button>
-        <span>{book.title}</span>
-        <div>
-          <button
-            aria-label="Previous page"
-            disabled={current <= 1}
-            onClick={() => setCurrent((p) => p - 1)}
-          >
-            <ChevronLeft size={16} />
-          </button>
-          <input
-            aria-label="Page number"
-            type="number"
-            min="1"
-            max={book.pages}
-            value={current}
-            onChange={(e) =>
-              setCurrent(
-                Math.max(1, Math.min(book.pages, Number(e.target.value) || 1)),
-              )
-            }
-          />
-          <small>/ {book.pages}</small>
-          <button
-            aria-label="Next page"
-            disabled={current >= book.pages}
-            onClick={() => setCurrent((p) => p + 1)}
-          >
-            <ChevronRight size={16} />
-          </button>
-        </div>
-      </div>
-      <div className="paper-area">
-        {book.data ? (
-          <>
-            <canvas ref={canvas} />
-            {error && <p>{error}</p>}
-          </>
-        ) : (
-          <div className="demo-reader">
-            <BookOpen size={40} />
-            <h2>This is a preview resource</h2>
-            <p>Import a PDF to read your own books here.</p>
-            <button onClick={onClose}>Back to your library</button>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
@@ -848,6 +755,7 @@ export default function App() {
           <main className="main">
             {selected ? (
               <Reader
+                key={selected.book.id + ":" + selected.page}
                 book={selected.book}
                 page={selected.page}
                 onClose={() => setSelected(null)}

@@ -206,6 +206,23 @@ try {
     "Everyday Cooking",
     "Imported library persists after reload",
   );
+  const readingStar = page.getByRole("button", {
+    name: "Currently reading: Everyday Cooking",
+    exact: true,
+  });
+  await readingStar.click();
+  await page.getByRole("button", { name: "Current", exact: true }).click();
+  assert.equal(
+    await page.locator(".book-title").textContent(),
+    "Everyday Cooking",
+  );
+  await page.reload();
+  await readingStar.waitFor();
+  assert.equal(await readingStar.getAttribute("aria-pressed"), "true");
+  await page.getByRole("button", { name: "Current", exact: true }).click();
+  await readingStar.click();
+  assert.equal(await page.locator(".book-title").count(), 0);
+  await page.getByRole("button", { name: "All", exact: true }).click();
 
   const unknown = path.join(root, ".qa/unknown.pdf");
   const unknown2 = path.join(root, ".qa/unknown2.pdf");
@@ -219,38 +236,25 @@ try {
   );
   await page.locator("input[type=file]").setInputFiles([unknown, unknown2]);
   const dialog = page.getByRole("dialog");
-  await dialog.waitFor();
-  assert.ok(
-    await dialog.getByText("Untitled Journal", { exact: true }).isVisible(),
-    "Uncategorized import prompts for subjects",
-  );
+  const unclassified = page
+    .locator(".book")
+    .filter({ hasText: "Unsorted Journal" });
+  await unclassified.waitFor();
   assert.equal(
-    await dialog
-      .getByRole("button", { name: "Save subjects", exact: true })
-      .isDisabled(),
-    true,
-    "No empty subject can be saved",
+    await dialog.count(),
+    0,
+    "Unknown books never interrupt importing",
   );
-  await page.screenshot({ path: ".impeccable/review/category.png" });
-  await dialog
-    .getByLabel("Add subjects", { exact: true })
-    .fill("Gardening, Botany");
-  await dialog
-    .getByRole("button", { name: "Save subjects", exact: true })
-    .click();
-  await page.waitForFunction(
-    () =>
-      document.querySelector(".category-resource strong")?.textContent ===
-      "Unsorted Journal",
-  );
-  await dialog.getByRole("button", { name: "Not now", exact: true }).click();
-  await page.waitForFunction(() => !document.querySelector("dialog"));
   await page.reload();
-  await dialog.waitFor();
-  assert.ok(
-    await dialog.getByText("Unsorted Journal", { exact: true }).isVisible(),
-    "Deferred resource is prompted on restart",
+  await unclassified.waitFor();
+  assert.equal(
+    await dialog.count(),
+    0,
+    "Unknown books do not prompt on restart",
   );
+  await unclassified
+    .getByRole("button", { name: "Choose subjects", exact: true })
+    .click();
   await dialog.getByRole("button", { name: "Gardening", exact: true }).click();
   await dialog
     .getByLabel("Classification", { exact: true })
@@ -259,13 +263,6 @@ try {
     .getByRole("button", { name: "Save subjects", exact: true })
     .click();
   await page.waitForFunction(() => !document.querySelector("dialog"));
-  await page.reload();
-  await page.waitForSelector(".book-grid");
-  assert.equal(
-    await page.locator("dialog").count(),
-    0,
-    "Saved choices persist and stop prompts",
-  );
   await page
     .locator(".tabs")
     .getByRole("button", { name: "Fiction", exact: true })
@@ -273,7 +270,6 @@ try {
   assert.equal(
     await page.locator(".book-title").textContent(),
     "Unsorted Journal",
-    "Manual classification affects retrieval filters",
   );
   assert.deepEqual(errors, [], "No renderer exceptions");
   console.log(

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain } = require("electron");
 const path = require("node:path");
+const { pathToFileURL } = require("node:url");
 const { LocalModelService } = require("./local-models.cjs");
 if (process.env.SPECULIB_TEST_PROFILE) {
   app.setPath("userData", path.resolve(process.env.SPECULIB_TEST_PROFILE));
@@ -22,11 +23,19 @@ function createWindow() {
   });
   win.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   win.webContents.on("will-navigate", (event) => event.preventDefault());
+  const entry =
+    process.env.SPECULIB_DEV === "1"
+      ? "http://127.0.0.1:5173/"
+      : pathToFileURL(path.join(__dirname, "../dist/index.html")).href;
   win.webContents.session.setPermissionRequestHandler(
-    (_contents, _permission, callback) => callback(false),
+    (_contents, permission, callback, details) =>
+      callback(
+        permission === "fullscreen" &&
+          details.isMainFrame &&
+          details.requestingUrl === entry,
+      ),
   );
-  if (process.env.SPECULIB_DEV === "1") win.loadURL("http://127.0.0.1:5173");
-  else win.loadFile(path.join(__dirname, "../dist/index.html"));
+  win.loadURL(entry);
 }
 app.whenReady().then(async () => {
   const models = new LocalModelService(app.getPath("userData"));

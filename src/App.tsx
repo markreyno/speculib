@@ -10,12 +10,14 @@ import {
   refreshCatalog,
   needsCategory,
   cleanSubjects,
+  bookSubjects,
 } from "./catalog";
 import CategoryPrompt from "./CategoryPrompt";
 import { terms, wantsFiction } from "./retrieval";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BookOpen,
+  Star,
   Search,
   Plus,
   Library,
@@ -44,8 +46,6 @@ import {
   ArrowLeft,
   PanelLeftClose,
   PanelLeftOpen,
-  PanelRightClose,
-  PanelRightOpen,
 } from "lucide-react";
 import * as pdfjs from "pdfjs-dist";
 import worker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
@@ -108,6 +108,30 @@ export default function App() {
     }
   }, [leftCollapsed, rightCollapsed]);
   const [books, setBooks] = useState<Resource[]>([]);
+  const [readingIds, setReadingIds] = useState<Set<string>>(() => {
+    try {
+      const saved: unknown = JSON.parse(
+        localStorage.getItem("speculib.readingIds") ?? "[]",
+      );
+      return new Set(
+        Array.isArray(saved)
+          ? saved.filter((id) => typeof id === "string")
+          : [],
+      );
+    } catch {
+      return new Set();
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        "speculib.readingIds",
+        JSON.stringify([...readingIds]),
+      );
+    } catch {
+      setStatus("Could not save your reading stars on this device.");
+    }
+  }, [readingIds]);
   const [modelSettings, setModelSettings] = useState<ModelSettings>({
     librarianModel: "",
     categorizerModel: "",
@@ -162,9 +186,7 @@ export default function App() {
   const [sort, setSort] = useState("recent");
   const [filter, setFilter] = useState("all");
   const [editing, setEditing] = useState<Resource | null>(null);
-  const [deferredCategories, setDeferredCategories] = useState<Set<string>>(
-    () => new Set(),
-  );
+  const [categoryBookId, setCategoryBookId] = useState<string | null>(null);
   const file = useRef<HTMLInputElement>(null);
   const chatEnd = useRef<HTMLDivElement>(null);
   const display = books.length ? books : samples;
@@ -196,7 +218,8 @@ export default function App() {
       (b) =>
         !b.subjectsEdited &&
         b.texts?.some((t) => t.trim()) &&
-        b.modelCatalog?.model !== model &&
+        (b.modelCatalog?.model !== model ||
+          b.catalogVersion !== catalogVersion) &&
         !categoryAttempts.current.has(b.id + ":" + model),
     );
     if (!book) return;
@@ -522,7 +545,10 @@ export default function App() {
             (shelf === "All resources" ||
               shelf === "Recently added" ||
               b.subjects.includes(shelf)) &&
-            (filter === "all" || b.fiction === (filter === "fiction")) &&
+            (filter === "all" ||
+              (filter === "current"
+                ? readingIds.has(b.id)
+                : b.fiction === (filter === "fiction"))) &&
             (!search || resultById.has(b.id)),
         )
         .sort((a, b) =>
@@ -533,42 +559,54 @@ export default function App() {
               ? a.title.localeCompare(b.title)
               : b.added - a.added,
         ),
-    [display, shelf, filter, search, sort, resultById],
+    [display, shelf, filter, search, sort, resultById, readingIds],
   );
   const allSubjects = Array.from(new Set(display.flatMap((b) => b.subjects)));
-  const uncategorized = books.find(
-    (b) =>
-      modelsLoaded &&
-      needsCategory(b) &&
-      !deferredCategories.has(b.id) &&
-      !(
-        modelSettings.categorizerModel &&
-        b.texts?.some((t) => t.trim()) &&
-        !b.subjectsEdited &&
-        !categoryAttempts.current.has(
-          b.id + ":" + modelSettings.categorizerModel,
-        )
-      ),
-  );
+  const uncategorized = books.find((b) => b.id === categoryBookId);
   return (
     <div
       className={`app ${exploring ? "exploring" : ""} ${leftCollapsed ? "left-collapsed" : ""} ${rightCollapsed ? "right-collapsed" : ""}`}
     >
       <Universe books={display} exploring={exploring} onSelect={select} />
       <header className="app-bar">
-        <a
-          className="brand"
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            setExploring(false);
-            setSelected(null);
-          }}
-          aria-label="Speculib library"
-        >
-          <Orbit size={25} strokeWidth={1.3} />
-          <span>speculib</span>
-        </a>
+        <div className="header-actions">
+          <button
+            className="panel-toggle"
+            aria-label={
+              leftCollapsed
+                ? "Expand library navigation"
+                : "Collapse library navigation"
+            }
+            title={
+              leftCollapsed
+                ? "Expand library navigation"
+                : "Collapse library navigation"
+            }
+            aria-expanded={!leftCollapsed}
+            aria-controls="library-navigation"
+            disabled={exploring}
+            onClick={() => setLeftCollapsed((value) => !value)}
+          >
+            {leftCollapsed ? (
+              <PanelLeftOpen size={18} />
+            ) : (
+              <PanelLeftClose size={18} />
+            )}
+          </button>
+          <a
+            className="brand"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              setExploring(false);
+              setSelected(null);
+            }}
+            aria-label="Speculib library"
+          >
+            <Orbit size={25} strokeWidth={1.3} />
+            <span>speculib</span>
+          </a>
+        </div>
         <div className="mode-switch" aria-label="View mode">
           <button
             className={!exploring ? "active" : ""}
@@ -592,10 +630,19 @@ export default function App() {
           >
             <Settings2 size={18} />
           </button>
-          <span className="app-status">
-            <i className="local-dot" /> Local library{" "}
-            <span>{books.length} PDFs</span>
-          </span>
+          <button
+            className="panel-toggle"
+            aria-label={
+              rightCollapsed ? "Expand librarian" : "Collapse librarian"
+            }
+            title={rightCollapsed ? "Expand librarian" : "Collapse librarian"}
+            aria-expanded={!rightCollapsed}
+            aria-controls="librarian-panel"
+            disabled={exploring}
+            onClick={() => setRightCollapsed((value) => !value)}
+          >
+            <MessageSquare size={18} />
+          </button>
         </div>
       </header>
       <input
@@ -624,31 +671,10 @@ export default function App() {
         <>
           <aside
             id="library-navigation"
-            className={`sidebar ${leftCollapsed ? "panel-collapsed" : ""}`}
+            className="sidebar"
+            hidden={leftCollapsed}
             aria-label="Library navigation"
           >
-            <button
-              className="panel-toggle left-toggle"
-              aria-label={
-                leftCollapsed
-                  ? "Expand library navigation"
-                  : "Collapse library navigation"
-              }
-              title={
-                leftCollapsed
-                  ? "Expand library navigation"
-                  : "Collapse library navigation"
-              }
-              aria-expanded={!leftCollapsed}
-              aria-controls="library-navigation"
-              onClick={() => setLeftCollapsed((value) => !value)}
-            >
-              {leftCollapsed ? (
-                <PanelLeftOpen size={18} />
-              ) : (
-                <PanelLeftClose size={18} />
-              )}
-            </button>
             <div className="sidebar-head">
               <Library size={17} />
               <span>Library</span>
@@ -715,9 +741,6 @@ export default function App() {
             >
               <Clock3 size={17} /> Recently added
             </button>
-            <button className="nav-item" onClick={() => setExploring(true)}>
-              <Orbit size={17} /> Explore <ArrowUpRight size={14} />
-            </button>
             <div className="nav-label shelves-label">
               Subjects <span>{allSubjects.length}</span>
             </div>
@@ -747,10 +770,6 @@ export default function App() {
             <button className="import" onClick={() => file.current?.click()}>
               <Upload size={16} /> Import PDFs <Plus size={14} />
             </button>
-            <div className="sidebar-bottom">
-              <div className="local-dot" />
-              <div>Stored locally</div>
-            </div>
           </aside>
           <main className="main">
             {selected ? (
@@ -813,17 +832,19 @@ export default function App() {
                   )}
                   <div className="library-tools">
                     <div className="tabs">
-                      {["all", "nonfiction", "fiction"].map((f) => (
+                      {Object.entries({
+                        all: "All",
+                        nonfiction: "Nonfiction",
+                        fiction: "Fiction",
+                        current: "Current",
+                      }).map(([f, label]) => (
                         <button
                           className={filter === f ? "active" : ""}
+                          aria-pressed={filter === f}
                           onClick={() => setFilter(f)}
                           key={f}
                         >
-                          {f === "all"
-                            ? "All"
-                            : f === "nonfiction"
-                              ? "Nonfiction"
-                              : "Fiction"}
+                          {label}
                         </button>
                       ))}
                     </div>
@@ -888,17 +909,46 @@ export default function App() {
                                 <span>
                                   {b.fiction ? "Fiction" : "Nonfiction"}
                                 </span>
-                                <button
-                                  title="Edit resource details"
-                                  onClick={() =>
-                                    setEditing({
-                                      ...b,
-                                      subjects: [...b.subjects],
-                                    })
-                                  }
-                                >
-                                  <MoreHorizontal size={17} />
-                                </button>
+                                <div className="book-actions">
+                                  <button
+                                    type="button"
+                                    aria-label={`Currently reading: ${b.title}`}
+                                    aria-pressed={readingIds.has(b.id)}
+                                    title={
+                                      readingIds.has(b.id)
+                                        ? "Remove from Current"
+                                        : "Mark as currently reading"
+                                    }
+                                    onClick={() =>
+                                      setReadingIds((old) => {
+                                        const next = new Set(old);
+                                        if (next.has(b.id)) next.delete(b.id);
+                                        else next.add(b.id);
+                                        return next;
+                                      })
+                                    }
+                                  >
+                                    <Star
+                                      size={16}
+                                      fill={
+                                        readingIds.has(b.id)
+                                          ? "currentColor"
+                                          : "none"
+                                      }
+                                    />
+                                  </button>
+                                  <button
+                                    title="Edit resource details"
+                                    onClick={() =>
+                                      setEditing({
+                                        ...b,
+                                        subjects: [...b.subjects],
+                                      })
+                                    }
+                                  >
+                                    <MoreHorizontal size={17} />
+                                  </button>
+                                </div>
                               </div>
                               <button
                                 className="book-title"
@@ -908,6 +958,14 @@ export default function App() {
                               </button>
                               <p>{b.author}</p>
                               <div className="subject-tags">
+                                {needsCategory(b) && books.includes(b) && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setCategoryBookId(b.id)}
+                                  >
+                                    Choose subjects
+                                  </button>
+                                )}
                                 {b.subjects.slice(0, 2).map((s) => (
                                   <button
                                     key={s}
@@ -976,25 +1034,10 @@ export default function App() {
           </main>
           <aside
             id="librarian-panel"
-            className={`librarian ${rightCollapsed ? "panel-collapsed" : ""}`}
+            className="librarian"
+            hidden={rightCollapsed}
             aria-label="Librarian"
           >
-            <button
-              className="panel-toggle right-toggle"
-              aria-label={
-                rightCollapsed ? "Expand librarian" : "Collapse librarian"
-              }
-              title={rightCollapsed ? "Expand librarian" : "Collapse librarian"}
-              aria-expanded={!rightCollapsed}
-              aria-controls="librarian-panel"
-              onClick={() => setRightCollapsed((value) => !value)}
-            >
-              {rightCollapsed ? (
-                <PanelRightOpen size={18} />
-              ) : (
-                <PanelRightClose size={18} />
-              )}
-            </button>
             <div className="librarian-heading">
               <MessageSquare size={18} />
               <div>
@@ -1172,9 +1215,7 @@ export default function App() {
           key={uncategorized.id}
           book={uncategorized}
           subjects={cleanSubjects(allSubjects)}
-          onLater={() =>
-            setDeferredCategories((old) => new Set([...old, uncategorized.id]))
-          }
+          onLater={() => setCategoryBookId(null)}
           onSave={async (subjects, fiction) => {
             const updated = {
               ...uncategorized,
@@ -1189,6 +1230,7 @@ export default function App() {
             setBooks((old) =>
               old.map((b) => (b.id === updated.id ? updated : b)),
             );
+            setCategoryBookId(null);
           }}
         />
       )}
@@ -1201,6 +1243,9 @@ export default function App() {
               if (books.some((b) => b.id === editing.id)) {
                 const saved = {
                   ...editing,
+                  subjects: cleanSubjects(editing.subjects).length
+                    ? cleanSubjects(editing.subjects)
+                    : ["Uncategorized"],
                   subjectsEdited: true,
                   modelCatalog: undefined,
                   classificationStatus: undefined,
@@ -1242,18 +1287,55 @@ export default function App() {
                 }
               />
             </label>
-            <label>
-              Subjects · separated by commas
-              <input
-                value={editing.subjects.join(", ")}
-                onChange={(e) =>
-                  setEditing({
-                    ...editing,
-                    subjects: e.target.value.split(",").map((s) => s.trim()),
-                  })
-                }
-              />
-            </label>
+            <fieldset className="edit-subjects">
+              <legend>Subjects</legend>
+              <select
+                aria-label="Add a subject"
+                value=""
+                onChange={(e) => {
+                  const subject = e.target.value;
+                  if (subject)
+                    setEditing({
+                      ...editing,
+                      subjects: cleanSubjects([...editing.subjects, subject]),
+                    });
+                }}
+              >
+                <option value="">Select a subject</option>
+                {cleanSubjects([...bookSubjects, ...allSubjects])
+                  .sort((a, b) => a.localeCompare(b))
+                  .map((subject) => (
+                    <option
+                      key={subject}
+                      disabled={editing.subjects.some(
+                        (selected) =>
+                          selected.toLowerCase() === subject.toLowerCase(),
+                      )}
+                    >
+                      {subject}
+                    </option>
+                  ))}
+              </select>
+              <div className="edit-subject-options">
+                {cleanSubjects(editing.subjects).map((subject) => (
+                  <button
+                    type="button"
+                    key={subject}
+                    aria-label={`Remove subject ${subject}`}
+                    onClick={() =>
+                      setEditing({
+                        ...editing,
+                        subjects: cleanSubjects(editing.subjects).filter(
+                          (selected) => selected !== subject,
+                        ),
+                      })
+                    }
+                  >
+                    {subject} <X size={12} />
+                  </button>
+                ))}
+              </div>
+            </fieldset>
             <label>
               Classification
               <select

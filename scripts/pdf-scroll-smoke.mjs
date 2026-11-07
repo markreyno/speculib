@@ -62,6 +62,12 @@ try {
   assert.equal(await page.locator(".pdf-page-frame").count(), 80);
   const initial = await page.locator(".paper-area canvas").count();
   assert.ok(initial < 8, "Only nearby pages have canvases");
+  await page.getByRole("button", { name: "Fullscreen PDF" }).click();
+  await page.waitForFunction(() =>
+    document.fullscreenElement?.matches(".reader"),
+  );
+  await page.getByRole("button", { name: "Exit fullscreen" }).press("Escape");
+  await page.waitForFunction(() => !document.fullscreenElement);
   await page.getByRole("button", { name: "Scroll down", exact: true }).click();
   await page.waitForFunction(
     () => document.querySelector(".paper-area").scrollTop > 100,

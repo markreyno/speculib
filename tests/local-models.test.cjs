@@ -45,7 +45,7 @@ test("model settings list local chat models and persist independent choices", as
     service.save({ librarianModel: "embed", categorizerModel: "" }),
   );
 });
-test("categorization requires actual source quotes and asks user on insufficient evidence", async () => {
+test("categorization requires a source quote for each assigned subject", async () => {
   const output = {
     subjects: ["Cooking"],
     keywords: ["food"],
@@ -54,7 +54,7 @@ test("categorization requires actual source quotes and asks user on insufficient
     documentType: "Book",
     fiction: "nonfiction",
     needsUser: false,
-    evidence: [{ page: 2, quote: "Preheat the oven" }],
+    evidence: [{ subject: "Cooking", page: 2, quote: "Preheat the oven" }],
   };
   const service = new LocalModelService("", { fetchImpl: mock(output) });
   service.settings.categorizerModel = "chat";

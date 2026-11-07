@@ -2,6 +2,8 @@ import { memo, useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowDown,
+  Maximize,
+  Minimize,
   BookOpen,
   ChevronLeft,
   ChevronRight,
@@ -104,11 +106,37 @@ export default function Reader({
   const [width, setWidth] = useState(0);
   const [active, setActive] = useState<Set<number>>(new Set());
   const [error, setError] = useState("");
+  const [fullscreen, setFullscreen] = useState(false);
+  const [fullscreenError, setFullscreenError] = useState("");
+  const reader = useRef<HTMLDivElement>(null);
   const area = useRef<HTMLDivElement>(null);
   const frames = useRef(new Map<number, HTMLDivElement>());
   const activeRef = useRef(active);
   activeRef.current = active;
   const positioned = useRef(false);
+  useEffect(() => {
+    const element = reader.current;
+    if (!element) return;
+    const owner = element.ownerDocument;
+    const sync = () => setFullscreen(owner.fullscreenElement === element);
+    owner.addEventListener("fullscreenchange", sync);
+    return () => owner.removeEventListener("fullscreenchange", sync);
+  }, []);
+
+  async function toggleFullscreen() {
+    const element = reader.current;
+    if (!element) return;
+    setFullscreenError("");
+    try {
+      if (element.ownerDocument.fullscreenElement === element) {
+        await element.ownerDocument.exitFullscreen();
+      } else {
+        await element.requestFullscreen();
+      }
+    } catch {
+      setFullscreenError("Could not change fullscreen mode.");
+    }
+  }
   const jump = useCallback(
     (number: number) => {
       const target = Math.max(1, Math.min(book.pages, number));
@@ -221,13 +249,31 @@ export default function Reader({
     };
   }, [document, jump, page, trackCurrent]);
   return (
-    <div className="reader">
+    <div
+      className="reader"
+      ref={reader}
+      onKeyDown={(event) => {
+        if (event.key === "Escape" && fullscreen) {
+          event.preventDefault();
+          void toggleFullscreen();
+        }
+      }}
+    >
       <div className="reader-toolbar">
         <button onClick={onClose}>
           <ArrowLeft size={16} /> Library
         </button>
         <span>{book.title}</span>
         <div>
+          <button
+            type="button"
+            title={fullscreen ? "Exit fullscreen (Esc)" : "Fullscreen PDF"}
+            aria-label={fullscreen ? "Exit fullscreen" : "Fullscreen PDF"}
+            disabled={!book.data}
+            onClick={() => void toggleFullscreen()}
+          >
+            {fullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+          </button>
           <button
             title="Scroll down"
             aria-label="Scroll down"
@@ -269,6 +315,11 @@ export default function Reader({
           </button>
         </div>
       </div>
+      {fullscreenError && (
+        <p className="reader-loading" role="alert">
+          {fullscreenError}
+        </p>
+      )}
       <div
         className="paper-area"
         ref={area}

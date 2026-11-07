@@ -80,3 +80,13 @@ test("manual subjects reject placeholder and deduplicate case-insensitively", ()
     cleanSubjects(["  Gardening ", "", "gardening", "Uncategorized", "Botany"]),
     ["Gardening", "Botany"],
   ));
+
+test("generic wording and duplicated pages do not establish book subjects", () => {
+  assert.deepEqual(
+    catalogSubjects(
+      "Design Patterns in Distributed Systems",
+      Array(20).fill("A note about Gardening."),
+    ),
+    ["Computer Science", "Distributed Systems"],
+  );
+});

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { BookOpen, Check } from "lucide-react";
 import type { Resource } from "./data";
-import { cleanSubjects } from "./catalog";
+import { bookSubjects, cleanSubjects } from "./catalog";
 export default function CategoryPrompt({
   book,
   subjects,
@@ -15,10 +15,19 @@ export default function CategoryPrompt({
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [chosen, setChosen] = useState<string[]>([]);
+  const [filter, setFilter] = useState("");
   const [custom, setCustom] = useState("");
   const [fiction, setFiction] = useState(book.fiction);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const options = cleanSubjects([...bookSubjects, ...subjects]).sort((a, b) =>
+    a.localeCompare(b),
+  );
+  const matching = options.filter(
+    (subject) =>
+      chosen.includes(subject) ||
+      subject.toLowerCase().includes(filter.trim().toLowerCase()),
+  );
   const values = cleanSubjects([...chosen, ...custom.split(",")]);
   useEffect(() => {
     const element = dialog.current!;
@@ -67,9 +76,15 @@ export default function CategoryPrompt({
           </div>
         </div>
         <fieldset disabled={saving}>
-          <legend>Existing subjects</legend>
+          <legend>Book categories</legend>
+          <input
+            aria-label="Filter book categories"
+            placeholder="Find a category"
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
           <div className="category-options">
-            {subjects.map((s) => (
+            {matching.map((s) => (
               <button
                 type="button"
                 key={s}
@@ -83,7 +98,9 @@ export default function CategoryPrompt({
                 {chosen.includes(s) && <Check size={12} />} {s}
               </button>
             ))}
-            {!subjects.length && <span>No subjects yet. Add one below.</span>}
+            {!matching.length && (
+              <span>No matching categories. Add a subject below.</span>
+            )}
           </div>
           <label htmlFor="category-custom">Add subjects</label>
           <input

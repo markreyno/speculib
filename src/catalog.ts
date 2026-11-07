@@ -1,5 +1,7 @@
+import bookSubjects from "./book-subjects.json" with { type: "json" };
+export { bookSubjects };
 import type { Resource } from "./data";
-export const catalogVersion = 2;
+export const catalogVersion = 4;
 export function cleanSubjects(values: string[]): string[] {
   const seen = new Set<string>();
   return values
@@ -67,22 +69,64 @@ export function cookingEvidence(text: string) {
       ))
   );
 }
-export function pageSubjects(text: string) {
-  return Object.entries(topicRules)
+const subjectPhrases = bookSubjects
+  .filter((subject) => !(subject in topicRules))
+  .map((subject) => ({ subject, phrase: " " + normalize(subject) + " " }));
+// These labels often appear in titles and prose with a different meaning.
+const ambiguousLabels = new Set([
+  "Art",
+  "Business",
+  "Careers",
+  "Communication",
+  "Design",
+  "Education",
+  "Engineering",
+  "Film",
+  "Health",
+  "History",
+  "Leadership",
+  "Management",
+  "Reference",
+  "Religion",
+  "Science",
+  "Technology",
+  "Travel",
+]);
+const builtInSubjects = new Set(bookSubjects);
+
+export function pageSubjects(text: string, isTitle = false) {
+  const normalized = " " + normalize(text) + " ";
+  const ruleMatches = Object.entries(topicRules)
     .filter(([subject, words]) =>
       subject === "Cooking"
         ? cookingEvidence(text)
-        : words.some((w) => contains(text, w)),
+        : words.some((word) => normalized.includes(" " + word + " ")),
     )
-    .map(([s]) => s);
+    .map(([subject]) => subject);
+  return [
+    ...ruleMatches,
+    ...subjectPhrases
+      .filter(({ subject, phrase }) =>
+        ambiguousLabels.has(subject)
+          ? isTitle && normalized === phrase
+          : normalized.includes(phrase),
+      )
+      .map(({ subject }) => subject),
+  ];
 }
 export function catalogSubjects(title: string, pages: string[]) {
-  const titles = pageSubjects(title);
+  const titles = pageSubjects(title, true);
   const counts = new Map<string, number>();
-  for (const page of pages)
-    for (const subject of pageSubjects(page))
+  const distinctPages = new Set<string>();
+  for (const page of pages) {
+    const normalized = normalize(page);
+    if (!normalized || distinctPages.has(normalized)) continue;
+    distinctPages.add(normalized);
+    for (const subject of pageSubjects(page)) {
       counts.set(subject, (counts.get(subject) || 0) + 1);
-  const minimum = Math.max(2, Math.ceil(pages.length * 0.08));
+    }
+  }
+  const minimum = Math.max(3, Math.ceil(distinctPages.size * 0.2));
   const subjects = Array.from(
     new Set([
       ...titles,
@@ -92,13 +136,17 @@ export function catalogSubjects(title: string, pages: string[]) {
         .map(([s]) => s),
     ]),
   );
-  return subjects.length ? subjects : ["Uncategorized"];
+  return subjects.length ? subjects.slice(0, 3) : ["Uncategorized"];
 }
 export function refreshCatalog(book: Resource): Resource {
-  if (book.catalogVersion === catalogVersion || book.subjectsEdited)
+  if (
+    book.catalogVersion === catalogVersion ||
+    book.subjectsEdited ||
+    book.modelCatalog
+  )
     return book;
   const customSubjects = book.subjects.filter(
-    (s) => !(s in topicRules) && s !== "Uncategorized",
+    (s) => !builtInSubjects.has(s) && s !== "Uncategorized",
   );
   const inferred = catalogSubjects(book.title, book.texts || []);
   const subjects = [...new Set([...customSubjects, ...inferred])].filter(

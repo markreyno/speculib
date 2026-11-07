@@ -144,8 +144,8 @@ export default function ModelSettingsDialog({
           ))}
         </select>
         <small>
-          Classifies PDFs in the background. Uncertain results ask you for
-          subjects. Manual choices are preserved.
+          Classifies PDFs in the background. Books with uncertain subjects stay
+          on the Uncategorized shelf. Manual choices are preserved.
         </small>
         <p>
           Lists installed local chat models only. Install models in Ollama, then
